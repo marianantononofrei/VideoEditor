@@ -18,17 +18,22 @@ namespace VideoEditor
     public partial class FormEditor : Form
     {
 
-        int heightColumn = 50;
-        int nrLines = 8;
+        int heightLine = 50;
+        int nrHeightLines = 8;
+        int maxWidth = 6000; // 100 min
+        int zoom = 1;
         Graphics editGraphic;
-        int mouseDownEditor = 0;
-        int mouseDownCursor = 0;
-        int mouseDownForm = 0;
+        int currentItem;
+        Dictionary<int, Item> items;
+        int CORNER_OFFSET = 10;
+        int MARGIN_OFFSET = 5;
         public FormEditor()
         {
             InitializeComponent();
-            var fullHeight = nrLines * heightColumn;
+            var fullHeight = nrHeightLines * heightLine;
             axWindowsMediaPlayer1.PlayStateChange += AxWindowsMediaPlayer1_PlayStateChange;
+            pnVideoEditing.Width = maxWidth + heightLine;
+            items = new Dictionary<int, Item>();
         }
 
         private void AxWindowsMediaPlayer1_PlayStateChange(object sender, AxWMPLib._WMPOCXEvents_PlayStateChangeEvent e)
@@ -50,15 +55,20 @@ namespace VideoEditor
             editGraphic = pnVideoEditing.CreateGraphics();
             editGraphic.Clear(Color.White);
             Brush lineColor = Brushes.Black;
-            for (int i = 0; i < nrLines; i++)
+            for (int i = 0; i < nrHeightLines; i++)
             {
-                editGraphic.DrawLine(new Pen(lineColor), new Point(0, i * heightColumn), new Point(pnVideoEditing.Width, i * heightColumn));
+                editGraphic.DrawLine(new Pen(lineColor), new Point(0, i * heightLine), new Point(pnVideoEditing.Width, i * heightLine));
             }
             // Vertical Lines
-            editGraphic.DrawLine(new Pen(lineColor), new Point(heightColumn, 0), new Point(heightColumn, pnVideoEditing.Height));
+            if (Math.Abs(pnVideoEditing.AutoScrollPosition.X) < heightLine)
+            {
+                editGraphic.DrawLine(new Pen(lineColor), new Point(heightLine - Math.Abs(pnVideoEditing.AutoScrollPosition.X), 0), new Point(heightLine - Math.Abs(pnVideoEditing.AutoScrollPosition.X), pnVideoEditing.Height));
+            }
 
 
             editGraphic.DrawLine(new Pen(lineColor), new Point(0, pnVideoEditing.Height - 1), new Point(pnVideoEditing.Width, pnVideoEditing.Height - 1));
+            editGraphic.TranslateTransform(pnVideoEditing.AutoScrollPosition.X, pnVideoEditing.AutoScrollPosition.Y);
+
         }
         /// <summary>
         /// Drag & Drop
@@ -78,19 +88,45 @@ namespace VideoEditor
                 double duration = 0;
                 foreach (var file in files)
                 {
-                    duration += Duration(file);
-
+                    duration = Duration(file);
                     string extension = Path.GetExtension(file);
+                    string fileName = Path.GetFileName(file);
                     if (extension == ".mp4")
                     {
-
-                        Button item = new Button();
-                        item.Name = file + "," + duration;
-                        item.Click += Item_Click;
-                        item.Size = new Size((int)duration, 40);
-                        pnVideoEditing.Controls.Add(item);
-                        item.Location = new Point(heightColumn + 5, 5);
-                        pbCursor.Location = item.Location;
+                        int key = 0;
+                        int startPos = 0;
+                        int grid = 1;
+                        if (items.Count > 0)
+                        {
+                            startPos = items.Values.Max(x => x.end);
+                            key = items.Keys.Max() + 1;
+                        }
+                        else
+                        {
+                            key = 1;
+                            startPos = heightLine;
+                        }
+                        Button crtButton = new Button();
+                        crtButton.Text = fileName + " : " + DurationReadeble(duration);
+                        crtButton.Name = file + "," + duration + "," + key;
+                        crtButton.Click += Item_Click;
+                        crtButton.Size = new Size((int)duration, 40);
+                        pnVideoEditing.Controls.Add(crtButton);
+                        crtButton.Location = new Point(startPos, 5 + heightLine * (grid - 1));
+                        pbCursor.Location = crtButton.Location;
+                        Item item = new Item
+                        {
+                            path = file,
+                            type = extension,
+                            grid = grid,
+                            start = crtButton.Location.X,
+                            end = crtButton.Location.X + (int)duration,
+                            startVideo = 0,
+                            endVideo = (int)duration,
+                            duration = (int)duration,
+                            button = crtButton,
+                        };
+                        items.Add(key, item);
                         pnVideoEditing.Update();
                     }
 
@@ -127,10 +163,16 @@ namespace VideoEditor
         private void Item_Click(object sender, EventArgs e)
         {
             Button crtButton = sender as Button;
-            if (axWindowsMediaPlayer1.URL != crtButton.Name.Split(',')[0] && !isPlaying())
+            int key = int.Parse(crtButton.Name.Split(',').Last());
+            if (isPlaying())
             {
-                axWindowsMediaPlayer1.URL = crtButton.Name.Split(',')[0];
+                axWindowsMediaPlayer1.Ctlcontrols.pause();
+            }
+            if (axWindowsMediaPlayer1.URL != items[key].path)
+            {
+                axWindowsMediaPlayer1.URL = items[key].path;
                 axWindowsMediaPlayer1.Ctlcontrols.play();
+                currentItem = key;
             }
 
         }
@@ -138,6 +180,10 @@ namespace VideoEditor
         {
             IWMPMedia mediainfo = axWindowsMediaPlayer1.newMedia(file);
             return mediainfo.duration;
+        }
+        public string DurationReadeble(double duration)
+        {
+            return TimeSpan.FromSeconds(duration).ToString(@"mm\:ss");
         }
         private bool isPlaying()
         {
@@ -159,14 +205,15 @@ namespace VideoEditor
         }
         private void pnVideoEditing_MouseMove(object sender, MouseEventArgs e)
         {
-            if (e.Location.Y < 3 && Cursor.Current == Cursors.Default && mouseDownEditor == 0)
+            if (e.Location.Y < 3 && Cursor.Current == Cursors.Default && e.Button == MouseButtons.None)
             {
                 Cursor.Current = Cursors.SizeNS;
             }
-            if (mouseDownEditor == 1 && Cursor.Current == Cursors.SizeNS)
+            if (Cursor.Current == Cursors.SizeNS && e.Button == MouseButtons.Left)
             {
                 pnVideoEditing.Location = new Point(pnVideoEditing.Location.X, this.PointToClient(Cursor.Position).Y);
                 pnVideoEditing.Size = new Size(pnVideoEditing.Width, this.Height + (this.Height - this.ClientRectangle.Height) - this.PointToClient(Cursor.Position).Y - 90);
+                hScrollBarZoom.Location = new Point(hScrollBarZoom.Location.X, this.PointToClient(Cursor.Position).Y - hScrollBarZoom.Height - hScrollBarZoom.Margin.Bottom - pnVideoEditing.Margin.Top);
                 DrawVideoEditingLines();
             }
             Debug.WriteLine("Mouse move: " + e.Location);
@@ -174,41 +221,36 @@ namespace VideoEditor
 
         private void pnVideoEditing_MouseDown(object sender, MouseEventArgs e)
         {
-            if (mouseDownEditor != 1)
+            if (e.Button == MouseButtons.Left)
             {
                 if (e.Location.Y < 3 && Cursor.Current == Cursors.Default)
                 {
                     Cursor.Current = Cursors.SizeNS;
                 }
-                mouseDownEditor = 1;
             }
         }
 
         private void pnVideoEditing_MouseUp(object sender, MouseEventArgs e)
         {
-            if (mouseDownEditor != 0)
+            if (e.Button == MouseButtons.Left)
             {
                 if (Cursor.Current == Cursors.SizeNS)
                 {
                     pnVideoEditing.Location = new Point(pnVideoEditing.Location.X, this.PointToClient(Cursor.Position).Y);
                     pnVideoEditing.Size = new Size(pnVideoEditing.Width, this.Height + (this.Height - this.ClientRectangle.Height) - this.PointToClient(Cursor.Position).Y - 90);
+                    hScrollBarZoom.Location = new Point(hScrollBarZoom.Location.X, this.PointToClient(Cursor.Position).Y - hScrollBarZoom.Height - hScrollBarZoom.Margin.Bottom - pnVideoEditing.Margin.Top);
                     DrawVideoEditingLines();
                     Cursor.Current = Cursors.Default;
                 }
-                mouseDownEditor = 0;
             }
         }
         private void Form1_Load(object sender, EventArgs e)
         {
-            pnVideoEditing.AutoScrollMargin = new Size(pnVideoEditing.Width, pnVideoEditing.Height);
             //SystemParameter.VerticalScrp
-        }
-        private void FormEditor_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (mouseDownForm != 0)
-            {
-                mouseDownForm = 0;
-            }
+            pbCursor.Location = new Point(heightLine, 5);
+            pbCursor.Height = heightLine * (nrHeightLines - 1);
+            pnVideoEditing.AutoScrollPosition = new Point(0, 0);
+            pnVideoEditing.AutoScrollOffset = new Point(9000, 0);
         }
         private void FormEditor_MouseDown(object sender, MouseEventArgs e)
         {
@@ -229,26 +271,27 @@ namespace VideoEditor
             {
                 Cursor.Current = Cursors.Default;
             }
-            if (mouseDownForm == 0)
-            {
-                mouseDownForm = 1;
-            }
         }
         private void FormEditor_MouseMove(object sender, MouseEventArgs e)
         {
-            if (Math.Abs(e.Location.X - axWindowsMediaPlayer1.Location.X) < 5 &&
-                   (Math.Abs(e.Location.Y - axWindowsMediaPlayer1.Height) < 5))
+            if (Math.Abs(e.Location.X - axWindowsMediaPlayer1.Location.X) < CORNER_OFFSET &&
+                      (Math.Abs(e.Location.Y - axWindowsMediaPlayer1.Height) < CORNER_OFFSET))
             {
-                if (mouseDownForm == 1)
+                Cursor.Current = Cursors.SizeNESW;
+            }
+            if (Math.Abs(e.Location.X - axWindowsMediaPlayer1.Location.X) < CORNER_OFFSET * 5 &&
+                   (Math.Abs(e.Location.Y - axWindowsMediaPlayer1.Height) < CORNER_OFFSET * 5))
+            {
+                if (e.Button == MouseButtons.Left && Cursor.Current == Cursors.SizeNESW)
                 {
                     axWindowsMediaPlayer1.Location = new Point(e.X, axWindowsMediaPlayer1.Location.Y);
-                    axWindowsMediaPlayer1.Size = new Size(this.Width - this.DefaultMargin.Horizontal - e.X - 1, e.Y);
+                    axWindowsMediaPlayer1.Size = new Size(this.Width - e.X - (this.DefaultMargin.Horizontal + axWindowsMediaPlayer1.Margin.Horizontal) - MARGIN_OFFSET, e.Y);
+                    axWindowsMediaPlayer1.Update();
                 }
-                Cursor.Current = Cursors.SizeNESW;
             }
             if (Math.Abs(e.Location.Y - pnVideoEditing.Location.Y) < 3)
             {
-                if (e.Button != MouseButtons.Right)
+                if (e.Button == MouseButtons.None)
                 {
                     Cursor.Current = Cursors.SizeNS;
                 }
@@ -284,7 +327,7 @@ namespace VideoEditor
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-            pbCursor.Location = new Point(heightColumn + (int)axWindowsMediaPlayer1.Ctlcontrols.currentPosition, pbCursor.Location.Y);
+            pbCursor.Location = new Point(items[currentItem].start + (int)axWindowsMediaPlayer1.Ctlcontrols.currentPosition - Math.Abs(pnVideoEditing.AutoScrollPosition.X), pbCursor.Location.Y);
         }
         /// <summary>
         /// MAIN CURSOR
@@ -298,55 +341,44 @@ namespace VideoEditor
 
         private void pbCursor_MouseMove(object sender, MouseEventArgs e)
         {
-            if (mouseDownCursor == 1)
+            if (e.Button == MouseButtons.Left)
             {
-                pbCursor.Location = new Point(pnVideoEditing.PointToClient(Cursor.Position).X + pnVideoEditing.AutoScrollPosition.X - 1, pbCursor.Location.Y);
+                pbCursor.Location = new Point(Math.Abs(pnVideoEditing.PointToClient(Cursor.Position).X) - 1, pbCursor.Location.Y);
                 pbCursor.Update();
             }
         }
-
-        private void pbCursor_MouseDown(object sender, MouseEventArgs e)
+        Button GetIntersectedButton()
         {
-            if (mouseDownCursor != 1)
+            foreach (var btn in pnVideoEditing.Controls.OfType<Button>())
             {
-                mouseDownCursor = 1;
-                timer1.Stop();
+                if (pbCursor.Bounds.IntersectsWith(btn.Bounds))
+                {
+                    return btn;
+                }
             }
+            return null;
         }
-
         private void pbCursor_MouseUp(object sender, MouseEventArgs e)
         {
-            if (mouseDownCursor != 0)
+            if (e.Button == MouseButtons.Left)
             {
-                mouseDownCursor = 0;
-                if (!isPlaying())
+                pbCursor.Location = new Point(Math.Abs(pnVideoEditing.PointToClient(Cursor.Position).X) - 1, pbCursor.Location.Y);
+                if (pbCursor.Location.X < heightLine && (Math.Abs(pnVideoEditing.AutoScrollPosition.X) < heightLine))
                 {
-
-                    timer1.Stop();
+                    pbCursor.Location = new Point(heightLine, pbCursor.Location.Y);
                 }
-
-                pbCursor.Location = new Point(pnVideoEditing.PointToClient(Cursor.Position).X + pnVideoEditing.AutoScrollPosition.X - 1, pbCursor.Location.Y);
-                if (pbCursor.Location.X < heightColumn)
+                Button intButton = GetIntersectedButton();
+                if (intButton == null)
                 {
-                    pbCursor.Location = new Point(heightColumn, pbCursor.Location.Y);
+                    return;
                 }
-                axWindowsMediaPlayer1.Ctlcontrols.currentPosition = pbCursor.Location.X - heightColumn;
+                axWindowsMediaPlayer1.Ctlcontrols.currentPosition = pbCursor.Location.X - intButton.Location.X;
                 pbCursor.Update();
-            }
-        }
-
-        private void pbCursor_MouseHover(object sender, EventArgs e)
-        {
-            if (mouseDownCursor == 1)
-            {
-                // pbCursor.Location = new Point(this.PointToClient(Cursor.Position).X, pbCursor.Location.Y);
-                // pbCursor.Update();
             }
         }
 
         private void pnVideoEditing_Scroll(object sender, ScrollEventArgs e)
         {
-
         }
 
         private void axWindowsMediaPlayer1_MouseMoveEvent(object sender, AxWMPLib._WMPOCXEvents_MouseMoveEvent e)
@@ -355,14 +387,15 @@ namespace VideoEditor
             Debug.WriteLine("WMWidth: " + crsPoint.X + " | " + axWindowsMediaPlayer1.Location.X.ToString());
             Debug.WriteLine("WMH: " + crsPoint.Y + " | " + axWindowsMediaPlayer1.Height.ToString());
 
-            if (Math.Abs(crsPoint.Y - axWindowsMediaPlayer1.Height) < 5 &&
-                Math.Abs(crsPoint.X - axWindowsMediaPlayer1.Location.X) < 5)
+            if (Math.Abs(crsPoint.Y - axWindowsMediaPlayer1.Height) < CORNER_OFFSET &&
+                Math.Abs(crsPoint.X - axWindowsMediaPlayer1.Location.X) < CORNER_OFFSET)
             {
                 Cursor.Current = Cursors.SizeNESW;
                 if (e.nButton == 1)
                 {
                     axWindowsMediaPlayer1.Location = new Point(crsPoint.X, axWindowsMediaPlayer1.Location.Y);
-                    axWindowsMediaPlayer1.Size = new Size(this.Width - this.DefaultMargin.Horizontal, crsPoint.Y);
+                    axWindowsMediaPlayer1.Size = new Size(this.Width - crsPoint.X - (this.DefaultMargin.Horizontal + axWindowsMediaPlayer1.Margin.Horizontal) - MARGIN_OFFSET, crsPoint.Y);
+                    axWindowsMediaPlayer1.Update();
                 }
                 Debug.WriteLine("Button CLick" + e.nButton);
             }
@@ -374,14 +407,16 @@ namespace VideoEditor
             }
         }
 
-        private void axWindowsMediaPlayer1_MouseDownEvent(object sender, AxWMPLib._WMPOCXEvents_MouseDownEvent e)
-        {
-
-        }
-
         private void pnVideoEditing_Resize(object sender, EventArgs e)
         {
             pnVideoEditing.AutoScrollMargin = new Size(pnVideoEditing.Width, pnVideoEditing.Height);
+            pbCursor.Height = nrHeightLines * (heightLine - 1);
+        }
+
+        private void FormEditor_Resize(object sender, EventArgs e)
+        {
+            pnVideoEditing.AutoScrollMargin = new Size(pnVideoEditing.Width, pnVideoEditing.Height);
+            pbCursor.Height = nrHeightLines * (heightLine - 1);
         }
     }
 }

@@ -46,9 +46,9 @@ namespace VideoEditor
             // pnVideoEditing
             // 
             this.pnVideoEditing.AllowDrop = true;
-            this.pnVideoEditing.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
+            this.pnVideoEditing.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.pnVideoEditing.AutoScroll = true;
-            this.pnVideoEditing.AutoScrollMargin = new System.Drawing.Size(10, 0);
             this.pnVideoEditing.Controls.Add(this.pbCursor);
             this.pnVideoEditing.Location = new System.Drawing.Point(1, 393);
             this.pnVideoEditing.Name = "pnVideoEditing";
@@ -72,14 +72,12 @@ namespace VideoEditor
             // 
             this.pbCursor.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.pbCursor.Cursor = System.Windows.Forms.Cursors.VSplit;
-            this.pbCursor.Location = new System.Drawing.Point(146, 24);
+            this.pbCursor.Location = new System.Drawing.Point(51, 3);
             this.pbCursor.Name = "pbCursor";
             this.pbCursor.Size = new System.Drawing.Size(4, 50);
             this.pbCursor.TabIndex = 0;
             this.pbCursor.TabStop = false;
             this.pbCursor.Click += new System.EventHandler(this.pbCursor_Click);
-            this.pbCursor.MouseDown += new System.Windows.Forms.MouseEventHandler(this.pbCursor_MouseDown);
-            this.pbCursor.MouseHover += new System.EventHandler(this.pbCursor_MouseHover);
             this.pbCursor.MouseMove += new System.Windows.Forms.MouseEventHandler(this.pbCursor_MouseMove);
             this.pbCursor.MouseUp += new System.Windows.Forms.MouseEventHandler(this.pbCursor_MouseUp);
             // 
@@ -92,7 +90,6 @@ namespace VideoEditor
             this.axWindowsMediaPlayer1.OcxState = ((System.Windows.Forms.AxHost.State)(resources.GetObject("axWindowsMediaPlayer1.OcxState")));
             this.axWindowsMediaPlayer1.Size = new System.Drawing.Size(594, 351);
             this.axWindowsMediaPlayer1.TabIndex = 2;
-            this.axWindowsMediaPlayer1.MouseDownEvent += new AxWMPLib._WMPOCXEvents_MouseDownEventHandler(this.axWindowsMediaPlayer1_MouseDownEvent);
             this.axWindowsMediaPlayer1.MouseMoveEvent += new AxWMPLib._WMPOCXEvents_MouseMoveEventHandler(this.axWindowsMediaPlayer1_MouseMoveEvent);
             this.axWindowsMediaPlayer1.Enter += new System.EventHandler(this.axWindowsMediaPlayer1_Enter);
             // 
@@ -106,7 +103,7 @@ namespace VideoEditor
             // 
             // hScrollBarZoom
             // 
-            this.hScrollBarZoom.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.hScrollBarZoom.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.hScrollBarZoom.Location = new System.Drawing.Point(1237, 380);
             this.hScrollBarZoom.Name = "hScrollBarZoom";
             this.hScrollBarZoom.Size = new System.Drawing.Size(82, 10);
@@ -116,13 +113,15 @@ namespace VideoEditor
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScroll = true;
+            this.AutoScrollMargin = new System.Drawing.Size(300, 0);
             this.ClientSize = new System.Drawing.Size(1328, 520);
             this.Controls.Add(this.hScrollBarZoom);
             this.Controls.Add(this.axWindowsMediaPlayer1);
             this.Controls.Add(this.pnVideoEditing);
             this.KeyPreview = true;
             this.Name = "FormEditor";
-            this.Text = "FormEditor";
+            this.Text = "VideoEditor";
             this.Load += new System.EventHandler(this.Form1_Load);
             this.ClientSizeChanged += new System.EventHandler(this.FormEditor_ClientSizeChanged);
             this.SizeChanged += new System.EventHandler(this.FormEditor_SizeChanged);
@@ -130,7 +129,7 @@ namespace VideoEditor
             this.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.FormEditor_KeyPress);
             this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.FormEditor_MouseDown);
             this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.FormEditor_MouseMove);
-            this.MouseUp += new System.Windows.Forms.MouseEventHandler(this.FormEditor_MouseUp);
+            this.Resize += new System.EventHandler(this.FormEditor_Resize);
             this.pnVideoEditing.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.pbCursor)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.axWindowsMediaPlayer1)).EndInit();
