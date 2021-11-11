@@ -180,7 +180,11 @@ namespace VideoEditor
         }
         private bool isPlaying()
         {
-            return axWindowsMediaPlayer1.playState == WMPPlayState.wmppsReady || axWindowsMediaPlayer1.playState == WMPPlayState.wmppsPlaying;
+            return axWindowsMediaPlayer1.playState == WMPPlayState.wmppsPlaying;
+        }
+        private bool isPaused()
+        {
+            return axWindowsMediaPlayer1.playState == WMPPlayState.wmppsPaused;
         }
         private void FormEditor_ClientSizeChanged(object sender, EventArgs e)
         {
@@ -297,13 +301,40 @@ namespace VideoEditor
         private void FormEditor_KeyDown(object sender, KeyEventArgs e)
         {
             Debug.WriteLine("KeyDown: " + e.KeyCode);
-            if (isPlaying())
+            if (e.KeyCode == Keys.Space)
             {
-                axWindowsMediaPlayer1.Ctlcontrols.pause();
+                if (isPlaying())
+                {
+                    axWindowsMediaPlayer1.Ctlcontrols.pause();
+                }
+                else
+                {
+                    axWindowsMediaPlayer1.Ctlcontrols.play();
+                }
+
             }
-            else
+            if (e.KeyCode == Keys.Delete)
             {
-                axWindowsMediaPlayer1.Ctlcontrols.play();
+                if (currentItem > 0)
+                {
+
+                    if (isPlaying())
+                    {
+                        axWindowsMediaPlayer1.Ctlcontrols.pause();
+                    }
+                    Button btn = items[currentItem].button;
+                    pnVideoEditing.Controls.Remove(btn);
+                    items.Remove(currentItem);
+                    if (items.Count() > 0)
+                    {
+                        currentItem = items.Keys.Max();
+                    }
+                    else
+                    {
+                        currentItem = 0;
+                    }
+                }
+
             }
         }
 
@@ -324,7 +355,10 @@ namespace VideoEditor
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-            pbCursor.Location = new Point(items[currentItem].start + (int)axWindowsMediaPlayer1.Ctlcontrols.currentPosition - Math.Abs(pnVideoEditing.AutoScrollPosition.X), pbCursor.Location.Y);
+            if (currentItem > 0)
+            {
+                pbCursor.Location = new Point(items[currentItem].start + (int)axWindowsMediaPlayer1.Ctlcontrols.currentPosition - Math.Abs(pnVideoEditing.AutoScrollPosition.X), pbCursor.Location.Y);
+            }
         }
         /// <summary>
         /// MAIN CURSOR
@@ -359,37 +393,38 @@ namespace VideoEditor
         {
             if (e.Button == MouseButtons.Left)
             {
-                if (pbCursor.Location.X >= items[currentItem].start && pbCursor.Location.X <= items[currentItem].end)
+                if (currentItem > 0)
                 {
-                    pbCursor.Location = new Point(Math.Abs(pnVideoEditing.PointToClient(Cursor.Position).X) - 1, pbCursor.Location.Y);
-                    if (pbCursor.Location.X < heightLine && (Math.Abs(pnVideoEditing.AutoScrollPosition.X) < heightLine))
+                    if (pbCursor.Location.X >= items[currentItem].start && pbCursor.Location.X <= items[currentItem].end)
                     {
-                        pbCursor.Location = new Point(heightLine, pbCursor.Location.Y);
+                        pbCursor.Location = new Point(Math.Abs(pnVideoEditing.PointToClient(Cursor.Position).X) - 1, pbCursor.Location.Y);
+                        if (pbCursor.Location.X < heightLine && (Math.Abs(pnVideoEditing.AutoScrollPosition.X) < heightLine))
+                        {
+                            pbCursor.Location = new Point(heightLine, pbCursor.Location.Y);
+                        }
+                        axWindowsMediaPlayer1.Ctlcontrols.currentPosition = pbCursor.Location.X - items[currentItem].button.Location.X;
+                        pbCursor.Update();
                     }
-                    axWindowsMediaPlayer1.Ctlcontrols.currentPosition = pbCursor.Location.X - items[currentItem].button.Location.X;
-                    pbCursor.Update();
-                }
-                else
-                {
-                    var crt = items.Values.FirstOrDefault(x => x.start <= pbCursor.Location.X && x.end >= pbCursor.Location.X);
-                    if (crt == null)
+                    else
                     {
-                        return;
+                        var crt = items.Values.FirstOrDefault(x => x.start <= pbCursor.Location.X && x.end >= pbCursor.Location.X);
+                        if (crt == null)
+                        {
+                            timer1.Stop();
+                            axWindowsMediaPlayer1.Ctlcontrols.pause();
+                            return;
+                        }
+                        int key = int.Parse(crt.button.Name.Split(',').Last());
+                        LoadItem(key);
+                        axWindowsMediaPlayer1.Ctlcontrols.currentPosition = pbCursor.Location.X - items[key].button.Location.X;
+                        pbCursor.Update();
                     }
-                    int key = int.Parse(crt.button.Name.Split(',').Last());
-                    LoadItem(key);
-                    axWindowsMediaPlayer1.Ctlcontrols.currentPosition = pbCursor.Location.X - items[key].button.Location.X;
-                    pbCursor.Update();
                 }
             }
         }
         void LoadItem(int key)
         {
-            if (isPlaying())
-            {
-                axWindowsMediaPlayer1.Ctlcontrols.pause();
-            }
-            if (axWindowsMediaPlayer1.URL != items[key].path)
+            if (key != currentItem)
             {
                 axWindowsMediaPlayer1.URL = items[key].path;
                 axWindowsMediaPlayer1.Ctlcontrols.play();
