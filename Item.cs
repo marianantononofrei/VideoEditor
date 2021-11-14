@@ -11,6 +11,7 @@ namespace VideoEditor
     {
         public string path { get; set; }
         public string type { get; set; }
+        public string fileName { get; set; }
         public int grid { get; set; }
 
         public int start { get; set; }
@@ -20,5 +21,6 @@ namespace VideoEditor
         public int endVideo { get; set; }
         public int duration { get; set; }
         public Button button { get; set; }
+
     }
 }
