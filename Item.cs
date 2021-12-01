@@ -9,6 +9,10 @@ namespace VideoEditor
 {
     class Item
     {
+        public FileType fileType
+        {
+            get; set;
+        }
         public string path { get; set; }
         public string type { get; set; }
         public string fileName { get; set; }

@@ -1,0 +1,91 @@
+15h
+zoom = 0%
+
+
+
+zoom min:
+150px = 0.4sec
+1px = 0.033sec
+750px = 1sec
+
+150px = 00:00:00:05
+750px = 00:00:01:05
+
+zoom mid 0:
+150px = 30sec
+30px = 6sec
+15px = 3sec
+5px = 1sec
+1px = 0.2sec
+
+30px = 00:00:06:00
+150px = 00:00:30:00
+300px = 00:01:00:00
+
+zoom +1: + 6px
+15px = 1 interval
+
+1px = 0.0666666666666667 
+75px = 00:00:05:00
+150px = 00:00:10:00
+300px = 00:00:20:00
+450px = 00:00:30:00
+
+zoom +2: - 6px (intervale de 4 cursorul merge cu 1px, 2px)
+1px = 0.0333333333333333
+120px = 00:00:04:00
+240px = 00:00:08:00
+480px = 00:00:08:00
+
+zoom +3: -
+1px = 0.008695652173913
+115px = 1sec
+
+zoom max:
+6px = 
+
+120px = 3600sec
+60px = 1800sec
+30px = 900sec
+15px = 450sec
+6px = 180sec
+1px = 30sec
+
+//width total
+
+
+
+
+// closest 5px // to split the grid
+// farest 30px // to split the grid
+
+
+1000 px / zoom = 0
+1000 / 6 = 166
+1000 / 7 = 142  // dif 24
+1000 / 8 = 125  // dif 17
+1000 / 9 = 111  // dif 14
+1000 / 10 = 100 // dif 11
+...
+1000 / 36 = 27
+
+800 px
+zoom = +200 px
+
+600 px
+zoom = +400 px
+
+limit (6 - 36)
+
+zoom = 0 px  -> 6
+
+
+
+1880 px / 6= 313 r2
+1880 px / 7= 268 r4
+1880 px / 8= 235 r0
+...
+1880 px / 35= 53 r25
+1880 px / 36= 52 r8
+
+

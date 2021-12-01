@@ -1,7 +1,7 @@
 ﻿
 namespace VideoEditor
 {
-    partial class NewProject
+    partial class CreateNewProject
     {
         /// <summary>
         /// Required designer variable.

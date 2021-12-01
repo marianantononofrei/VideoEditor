@@ -11,10 +11,10 @@ using System.Windows.Forms;
 
 namespace VideoEditor
 {
-    public partial class NewProject : Form
+    public partial class CreateNewProject : Form
     {
 
-        public NewProject()
+        public CreateNewProject()
         {
             InitializeComponent();
         }

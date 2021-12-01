@@ -56,7 +56,7 @@ namespace VideoEditor
         }
         private string CreateNewProject()
         {
-            NewProject np = new NewProject();
+            CreateNewProject np = new CreateNewProject();
             np.ShowDialog();
             while (np.DialogResult != System.Windows.Forms.DialogResult.OK)
             {

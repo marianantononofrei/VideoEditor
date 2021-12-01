@@ -13,5 +13,9 @@ namespace VideoEditor
 
         public const int WM_NCLBUTTONDOWN = 0xA1;
         public const int HTCAPTION = 0x2;
+        public static readonly string[] SUPPORTED_VIDEO_FORMATS = { ".mp4", ".avi", ".wmv", ".mkv", ".flv", ".mov" };
+        public static readonly string[] SUPPORTED_AUDIO_FORMATS = { ".mp3", ".wav" };
+        public static readonly string[] SUPPORTED_IMAGE_FORMATS = { ".jpg", ".jpeg", ".png", ".bmp", ".tif" };
+
     }
 }
