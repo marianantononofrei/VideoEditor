@@ -89,6 +89,7 @@ namespace VideoEditor
             this.pnVideoEditing.AllowDrop = true;
             this.pnVideoEditing.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
             | System.Windows.Forms.AnchorStyles.Left)));
+            this.pnVideoEditing.AutoScroll = true;
             this.pnVideoEditing.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.pnVideoEditing.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.pnVideoEditing.Controls.Add(this.pbCursor);

@@ -18,8 +18,8 @@ namespace VideoEditor
         public string fileName { get; set; }
         public int grid { get; set; }
 
-        public int start { get; set; }
-        public int end { get; set; }
+        public int startPoint { get; set; }
+        public int endPoint { get; set; }
 
         public int startVideo { get; set; }
         public int endVideo { get; set; }

@@ -22,16 +22,15 @@ namespace VideoEditor
         int maxNrHeightLines = 8;
         int[] heightIntervals;
         int maxWidth = 8_000;
-        int fragment = 6;
+        int fragment = 6; // 6-36 pixels fragments
         int stage = 0; // 0 - 6 zoomStage
-        double[] stageIntervals = new double[6] { 3600, 600, 60, 20, 4, 0.2 };
+        double[] stageIntervals = new double[6] { 3600, 600, 60, 20, 4, 0.2 }; // all zoom stage intervals
         int MAX_STAGE = 5;
         int previousZoom = 0;
         int maxZoomNrOfPixels;
-        int currentLeftMargin;
         int MIN_FRAGMENT = 6;
         int MAX_FRAGMENT = 36;
-        int zoom = 0;
+        int zoom = 0; // current zoom
         double onePixelSec = 30; // 1 pixel is 30 sec
         Graphics videoGraphic;
         Graphics leftMenuGraphic;
@@ -52,7 +51,7 @@ namespace VideoEditor
             InitializeComponent();
             pnVideoEditing.Width = maxWidth;
             pnVideoEditing.Height = maxNrHeightLines * HEIGHT_LINES + INTERVAL_HEIGHT;
-            visibleSize = new Size(this.Width - this.DefaultMargin.Horizontal, this.Height - this.DefaultMargin.Vertical - pnVideoEditing.Location.X);
+            visibleSize = new Size(this.Width - this.DefaultMargin.Horizontal, this.Height - this.DefaultMargin.Vertical - pnVideoEditing.Location.Y);
             videoGraphic = pnVideoEditing.CreateGraphics();
             leftMenuGraphic = pnLeftMenu.CreateGraphics();
             UpdateTotalViewNrOfPixels();
@@ -67,7 +66,7 @@ namespace VideoEditor
                 heightIntervals[i] = HEIGHT_LINES * i;
             }
             axWindowsMediaPlayer1.PlayStateChange += AxWindowsMediaPlayer1_PlayStateChange;
-            pnVideoEditing.VerticalScroll.Visible = false;
+            //pnVideoEditing.VerticalScroll.Visible = false;
             items = new Dictionary<int, Item>();
 
             currentProject = new Project();
@@ -95,7 +94,7 @@ namespace VideoEditor
             {
                 if (currentItem > 0)
                 {
-                    int btnEnd = items[currentItem].end;
+                    int btnEnd = items[currentItem].endPoint;
                     var nr = items.Where(x => x.Key != currentItem).Where(x => (Math.Abs(pbCursor.Location.X + pbCursor.Width / 2 - btnEnd) < NEXT_VIDEO_OFFSET));
                     if (nr != null && nr.Count() == 1)
                     {
@@ -111,10 +110,11 @@ namespace VideoEditor
         void DrawLeftSideLines()
         {
             // horizontal line
-            for (int i = 0; i * HEIGHT_LINES + INTERVAL_HEIGHT < visibleSize.Height; i++)
+            for (int i = 0; i * HEIGHT_LINES + INTERVAL_HEIGHT < pnLeftMenu.Height; i++)
             {
                 leftMenuGraphic.DrawLine(new Pen(lineColor), new Point(0, i * HEIGHT_LINES + INTERVAL_HEIGHT),
                                                         new Point(pnLeftMenu.Width, i * HEIGHT_LINES + INTERVAL_HEIGHT));
+
             }
         }
         void DrawVideoEditingLines()
@@ -128,11 +128,6 @@ namespace VideoEditor
             //int nrTotalSeconds = maxZoomNrOfPixels * onePixelSec;
 
             int stepCount = 0;
-            //if (rest > 0)
-            //{
-            //     / rest;
-            //    Debug.WriteLine("Rest: " + rest + " StepCount: " + stepCount);
-            //}
             zoom = nrTotalPixels - nrCurrentPixels;
             //var zoomRatio = 0;
             if (zoom > 0)
@@ -150,8 +145,8 @@ namespace VideoEditor
             //Debug.WriteLine("markDifference: " + markDifference + " stepCount: " + stepCount);
             //Debug.WriteLine("Visible Width: " + nrTotalPixels + " / current mark: " + fragment + " = " + nrTotalPixels / fragment);
 
-            // mark interval: min - 6px
-            // mark interval: max - 36px if > 36px = 6
+            // fragment interval: min - 6px
+            // fragment interval: max - 36px if > 36px = 6
             int nextZoom = nrTotalPixels / (fragment + 1);
             int prevZoom = nrTotalPixels / fragment;
             Debug.WriteLine("nextZoom: " + nextZoom);
@@ -163,6 +158,7 @@ namespace VideoEditor
                     Debug.WriteLine("New Mark++: " + fragment);
                     previousZoom = zoom;
                     onePixelSec = stageIntervals[stage] / (fragment * 20d);
+                    RefreshItemsPositionAndSize();
                     maxZoomNrOfPixels = visibleSize.Width;
                     stepCount = 0;
                 }
@@ -174,6 +170,7 @@ namespace VideoEditor
                         fragment = MIN_FRAGMENT;
                         stage++;
                         onePixelSec = stageIntervals[stage] / (fragment * 20d);
+                        RefreshItemsPositionAndSize();
                         hScrollBarZoom.Value = stage;
                     }
                 }
@@ -184,6 +181,7 @@ namespace VideoEditor
                 {
                     fragment--;
                     onePixelSec = stageIntervals[stage] / (fragment * 20d);
+                    RefreshItemsPositionAndSize();
                     maxZoomNrOfPixels = visibleSize.Width - previousZoom;
                     nrCurrentPixels = maxZoomNrOfPixels;
                     zoom = nrTotalPixels - nrCurrentPixels;
@@ -202,6 +200,7 @@ namespace VideoEditor
                         fragment = MAX_FRAGMENT - 1;
                         stage--;
                         onePixelSec = stageIntervals[stage] / (fragment * 20d);
+                        RefreshItemsPositionAndSize();
                         hScrollBarZoom.Value = stage;
                     }
                 }
@@ -213,8 +212,10 @@ namespace VideoEditor
             int crtSepCount = stepCount;
             //drawing small interval
             int k = 0; // time distance
+            int time_show = fragment == 6 ? 4 : fragment == 7 ? 2 : fragment > 12 ? 1 : 2; // 6 >= 4, 7 >= 2, 13 >= 1
             int j = 0; // big line distnace
             int prev = 0; // time offset
+
             // draw time intervals 
             for (int i = 0; i < nrTotalPixels; i += fragment)
             {
@@ -227,12 +228,18 @@ namespace VideoEditor
                     if (k == 0)
                     {
                         videoGraphic.DrawString(TimeSpan.FromSeconds(onePixelSec * (i - prev)).ToString(@"hh\:mm\:ss\:ff"),
-                                                            SystemFonts.DefaultFont, lineColor, currentLeftMargin + i, 6);
-                        k = 4;
+                                                            SystemFonts.DefaultFont, lineColor, i, 6);
+                        k = time_show;
                     }
                     j = 5;
                     k--;
                 }
+                /*
+                if (fragment > 29 && j == 3)
+                {
+                    videoGraphic.DrawString(TimeSpan.FromSeconds(onePixelSec * (i - prev)).ToString(@"hh\:mm\:ss\:ff"),
+                                                            SystemFonts.DefaultFont, lineColor, i + 12, 6);
+                }*/
                 j--;
                 if (crtSepCount > 0 && i >= crtSepCount)
                 {
@@ -241,6 +248,7 @@ namespace VideoEditor
                     crtSepCount += stepCount;
                 }
             }
+
             // horizontal line
             for (int i = 0; i * HEIGHT_LINES + INTERVAL_HEIGHT < visibleSize.Height; i++)
             {
@@ -248,10 +256,10 @@ namespace VideoEditor
                                                         new Point(visibleSize.Width, i * HEIGHT_LINES + INTERVAL_HEIGHT));
             }
             videoGraphic.TranslateTransform(pnVideoEditing.AutoScrollPosition.X, pnVideoEditing.AutoScrollPosition.Y);
-            if (zoom < 0)
-            {
-                UpdateTotalViewNrOfPixels();
-            }
+            //if (zoom < 0)
+            //{
+            //    UpdateTotalViewNrOfPixels();
+            //}
         }
         /// <summary>
         /// Drag & Drop
@@ -265,6 +273,19 @@ namespace VideoEditor
         private void pnMenu_Paint(object sender, PaintEventArgs e)
         {
             DrawLeftSideLines();
+        }
+
+        void RefreshItemsPositionAndSize()
+        {
+            if (items != null && items.Count > 0)
+            {
+                foreach (var item in items.Values)
+                {
+                    item.button.Location = new Point((int)Math.Ceiling(item.startPoint / onePixelSec), item.button.Location.Y);
+                    item.button.Size = new Size((int)Math.Ceiling(item.duration / onePixelSec), item.button.Size.Height);
+                }
+            }
+
         }
         private void pnVideoEditing_DragDrop(object sender, DragEventArgs e)
         {
@@ -288,6 +309,15 @@ namespace VideoEditor
 
 
         }
+        void UpdateVideoEditingMaxWidth(int maxPosition)
+        {
+            int position = maxPosition + (int)(0.3 * maxPosition);
+            if (visibleSize.Width < position)
+            {
+                pnVideoEditing.Width = maxPosition + (int)(0.3 * maxPosition);
+            }
+        }
+
         private void AddVideoImage(string fileName, string projectPath, string path, int duration, Button crtButton)
         {
             var wavFileName = VideoProcessing.FileNameWithoutExtension(fileName) + ".wav";
@@ -363,13 +393,12 @@ namespace VideoEditor
             int grid = 1;
             if (items.Count > 0)
             {
-                startPos = items.Values.Max(x => x.end);
+                startPos = items.Values.Max(x => x.endPoint);
                 key = items.Keys.Max() + 1;
             }
             else
             {
                 key = 1;
-                startPos = HEIGHT_LINES;
             }
             Button crtButton = new Button();
             crtButton.Text = fileName + " : " + DurationReadeble(duration);
@@ -379,9 +408,10 @@ namespace VideoEditor
             crtButton.MouseUp += Item_Button_MouseUp;
             crtButton.MouseDown += Item_Button_MouseDown;
             crtButton.MouseMove += Item_Button_MouseMove;
-            crtButton.Size = new Size((int)duration, HEIGHT_LINES);
+            crtButton.Size = new Size((int)(Math.Ceiling(duration / onePixelSec)), HEIGHT_LINES);
+            crtButton.Location = new Point((int)Math.Ceiling(startPos / onePixelSec), (grid - 1) + INTERVAL_HEIGHT);
+            UpdateVideoEditingMaxWidth(crtButton.Location.X + crtButton.Width);
             pnVideoEditing.Controls.Add(crtButton);
-            crtButton.Location = new Point(startPos, HEIGHT_LINES * (grid - 1) + INTERVAL_HEIGHT);
             //pbCursor.Location = new Point(crtButton.Location.X, pbCursor.Location.Y);
             Item item = new Item
             {
@@ -390,8 +420,8 @@ namespace VideoEditor
                 fileType = fileType,
                 type = extension,
                 grid = grid,
-                start = crtButton.Location.X,
-                end = crtButton.Location.X + (int)duration,
+                startPoint = crtButton.Location.X,
+                endPoint = crtButton.Location.X + crtButton.Size.Width,
                 startVideo = 0,
                 endVideo = (int)duration,
                 duration = (int)duration,
@@ -484,8 +514,8 @@ namespace VideoEditor
                     }
                 }
                 items[key].grid = interval;
-                items[key].start = crtButton.Location.X;
-                items[key].end = crtButton.Location.X + crtButton.Width;
+                items[key].startPoint = crtButton.Location.X;
+                items[key].endPoint = crtButton.Location.X + crtButton.Width;
                 currentItem = key;
                 crtButton.Location = new Point(crtButton.Location.X, interval * HEIGHT_LINES + INTERVAL_HEIGHT);
             }
@@ -537,6 +567,7 @@ namespace VideoEditor
             {
                 btnMaximize.Text = @"🗖";
             }
+            DrawLeftSideLines();
             DrawVideoEditingLines();
         }
         private void pnVideoEditing_MouseMove(object sender, MouseEventArgs e)
@@ -660,7 +691,11 @@ namespace VideoEditor
 
         private void FormEditor_SizeChanged(object sender, EventArgs e)
         {
-            DrawVideoEditingLines();
+            if (leftMenuGraphic != null && videoGraphic != null)
+            {
+                DrawLeftSideLines();
+                DrawVideoEditingLines();
+            }
         }
 
         private void axWindowsMediaPlayer1_Enter(object sender, EventArgs e)
@@ -673,7 +708,7 @@ namespace VideoEditor
 
             if (axWindowsMediaPlayer1.playState == WMPPlayState.wmppsPlaying && currentItem > 0)
             {
-                pbCursor.Location = new Point(items[currentItem].start + (int)axWindowsMediaPlayer1.Ctlcontrols.currentPosition - Math.Abs(pnVideoEditing.AutoScrollPosition.X), pbCursor.Location.Y);
+                pbCursor.Location = new Point(items[currentItem].startPoint + (int)axWindowsMediaPlayer1.Ctlcontrols.currentPosition - Math.Abs(pnVideoEditing.AutoScrollPosition.X), pbCursor.Location.Y);
             }
         }
         /// <summary>
@@ -721,7 +756,7 @@ namespace VideoEditor
         }
         void UpdateCurrentItemByCursor()
         {
-            var crt = items.FirstOrDefault(x => x.Value.start <= pbCursor.Location.X && x.Value.end >= pbCursor.Location.X);
+            var crt = items.FirstOrDefault(x => x.Value.startPoint <= pbCursor.Location.X && x.Value.endPoint >= pbCursor.Location.X);
             if (crt.Value == null)
             {
                 return;
@@ -735,19 +770,16 @@ namespace VideoEditor
         {
             if (currentItem > 0)
             {
-                if (pbCursor.Location.X >= items[currentItem].start && pbCursor.Location.X <= items[currentItem].end)
+                if (pbCursor.Location.X >= items[currentItem].startPoint && pbCursor.Location.X <= items[currentItem].endPoint)
                 {
                     pbCursor.Location = new Point(Math.Abs(pnVideoEditing.PointToClient(Cursor.Position).X) - 1, pbCursor.Location.Y);
-                    if (pbCursor.Location.X < HEIGHT_LINES && (Math.Abs(pnVideoEditing.AutoScrollPosition.X) < HEIGHT_LINES))
-                    {
-                        pbCursor.Location = new Point(HEIGHT_LINES, pbCursor.Location.Y);
-                    }
+                    pbCursor.Location = new Point(0, pbCursor.Location.Y);
                     axWindowsMediaPlayer1.Ctlcontrols.currentPosition = pbCursor.Location.X - items[currentItem].button.Location.X;
                     axWindowsMediaPlayer1.Ctlcontrols.play();
                 }
                 else
                 {
-                    var crt = items.FirstOrDefault(x => x.Value.start <= pbCursor.Location.X && x.Value.end >= pbCursor.Location.X);
+                    var crt = items.FirstOrDefault(x => x.Value.startPoint <= pbCursor.Location.X && x.Value.endPoint >= pbCursor.Location.X);
                     if (crt.Value == null)
                     {
                         return;
@@ -796,7 +828,7 @@ namespace VideoEditor
             var output = currentProject.projectsPath + currentProject.projectName + @"\" + wavFileName;
             VideoProcessing.ConvertFileToWAV(intItem.path, (int)intItem.duration, output);
             ExtractVideoWaveFile(output, wavFileName, (int)intItem.duration,
-            VideoProcessing.CreateWaveImage(output, (int)intItem.duration), ".wav", intItem.start, intItem.grid + 1);
+            VideoProcessing.CreateWaveImage(output, (int)intItem.duration), ".wav", intItem.startPoint, intItem.grid + 1);
         }
 
         private void ExtractVideoWaveFile(string file, string fileName, double duration, Image waveImage, string extension, int startPos, int nextGrid)
@@ -821,11 +853,11 @@ namespace VideoEditor
                 crtButton.MouseUp += Item_Button_MouseUp;
                 crtButton.MouseDown += Item_Button_MouseDown;
                 crtButton.MouseMove += Item_Button_MouseMove;
-                crtButton.Size = new Size((int)duration, 40);
+                crtButton.Size = new Size((int)(duration * onePixelSec), 40);
                 crtButton.BackgroundImageLayout = ImageLayout.Stretch;
                 crtButton.BackgroundImage = waveImage;
                 pnVideoEditing.Controls.Add(crtButton);
-                crtButton.Location = new Point(startPos, HEIGHT_LINES * (nextGrid - 1) + INTERVAL_HEIGHT);
+                crtButton.Location = new Point(startPos, HEIGHT_LINES * (nextGrid - 1));
                 //pbCursor.Location = new Point(crtButton.Location.X, pbCursor.Location.Y);
                 Item item = new Item
                 {
@@ -834,8 +866,8 @@ namespace VideoEditor
                     type = extension,
                     fileType = FileType.Audio,
                     grid = nextGrid,
-                    start = crtButton.Location.X,
-                    end = crtButton.Location.X + (int)duration,
+                    startPoint = crtButton.Location.X,
+                    endPoint = crtButton.Location.X + (int)duration,
                     startVideo = 0,
                     endVideo = (int)duration,
                     duration = (int)duration,
@@ -1032,6 +1064,7 @@ namespace VideoEditor
                 fragment = MIN_FRAGMENT;
                 stage = hScrollBarZoom.Value;
                 onePixelSec = stageIntervals[stage] / (fragment * 20d);
+                RefreshItemsPositionAndSize();
                 videoGraphic.Clear(pnVideoEditing.BackColor);
                 pnVideoEditing.Refresh();
             }
